@@ -4,7 +4,7 @@ import haxe.ds.Option;
 
 class CollectionTools {
   public static inline function delete<A>(it:Array<A>, f:(item:A) -> Bool, onlyFirst:Bool = false) {
-	  if(onlyFirst) {
+    if(onlyFirst) {
       for (i in 0...it.length) {
         if(f(it[i])) {
           it.splice(i, 1);
@@ -21,7 +21,7 @@ class CollectionTools {
     }
   }
   public static inline function filterMap<A, T>(it:Array<A>, f:A -> Option<T>):Array<T> {
-		var r = [];
+    var r = [];
     for(v in it) {
       switch f(v) {
         case Some(v): r.push(v);
@@ -29,16 +29,16 @@ class CollectionTools {
       }
     }
     return r;
-	}
+  }
   public static function findMap<T, S>(it:Iterable<T>, f:(item:T) -> Option<S>):S {
-		for (v in it) {
+    for (v in it) {
       switch f(v) {
         case Some(v): return v;
         case None:
       }
-		}
-		return null;
-	}
+    }
+    return null;
+  }
   public static inline function matchMap<T>(rex:EReg, str:String, f:(item:EReg) -> Option<T>) {
     var r = [];
     while (rex.match(str)) {
