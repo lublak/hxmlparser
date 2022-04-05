@@ -1067,7 +1067,7 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
 
     return result;
   }
-  @:to public inline function toString() this.map(HxmlArgumentTools.toString).join('\n');
+  @:to public inline function toString() this.map(HxmlArgumentTools.toString).join(' ');
   public inline function toHXML() return this.map(HxmlArgumentTools.toHxmlString).join('\n');
   public inline function toArgs() return this.map(HxmlArgumentTools.toArgArray).flatten();
 }
