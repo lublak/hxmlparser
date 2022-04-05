@@ -204,8 +204,7 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
   }
 
   public static inline function getRunInfos(r:String):{module:String, ?args:Array<String>} {
-    var rex = ~/[^\s"']+|"([^"]*)"/;
-    var result = rex.matchMap(r, f -> {
+    var result = ~/[^\s"']+|"([^"]*)"/.matchMap(r, f -> {
       return Some(~/"([^"]*)"/.replace(f.matched(0), '$1'));
     });
     var module = result.shift();
@@ -944,8 +943,19 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
     if(name.startsWith('#')) {
       if(args == null) addComment(name.substring(1));
       else addComment('${name.substring(1)} $args');
-    } else if(args == null) {
-      switch name {
+    } else if(name == '--run') {
+      if(args == null) setByArgArray([name]);
+      else setByArgArray([name].concat(~/[^\s"']+|"([^"]*)"/.matchMap(args, f -> {
+        return Some(~/"([^"]*)"/.replace(f.matched(0), '$1'));
+      })));
+    } else if(args == null) setByArgArray([name]);
+    else setByArgArray([name, args]);
+  }
+
+  public inline function setByArgArray(arr:Array<String>) {
+    var i = 0;
+    while (i < arr.length) {
+      switch arr[i] {
         case '--no-output': noOutput = true;
         case '--interp': interp = true;
         case '-v', '--verbose': verbose = true;
@@ -957,96 +967,87 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
         case '--no-inline': noInline = true;
         case '--no-opt': noOpt = true;
         case '--flash-strict': flashStrict = true;
-      }
-    } else {
-      switch name {
         case '--run':
-          var i = args.indexOf(' ');
-          if(i == -1) setRun(args, []);
-          else {
-            var runArgs = [];
-            var rex = ~/\w+|"[\w\s]*"/;
-            while(rex.match(args)) {
-              runArgs.push(rex.matched(0));
-              args = rex.matchedRight();
-            }
-            setRun(args.substring(0, i), runArgs);
-          }
-        case '-p', '-cp', '--class-path': addClassPath(args);
-        case '-L', '--library': addLibrary(args);
-        case '-m', '--main': main = args;
+          setRun(arr[i], arr.slice(i+1));
+          i = arr.length;
+        case '-p', '-cp', '--class-path': addClassPath(arr[++i]);
+        case '-L', '--library': addLibrary(arr[++i]);
+        case '-m', '--main': main = arr[++i];
         case '-D':
-          var infos = getDefineInfos(args);
+          var infos = getDefineInfos(arr[++i]);
           setDefine(infos.key, infos.value);
-        case '--js': js = args;
-        case '--swf': swf = args;
-        case '--neko': neko = args;
-        case '--php': php = args;
-        case '--cpp': cpp = args;
-        case '--cs': cs = args;
-        case '--java': java = args;
-        case '--jvm': jvm = args;
-        case '--python': python = args;
-        case '--lua': lua = args;
-        case '--hl': hl = args;
-        case '--cppia': cppia = args;
-        case '--x': execute = args;
-        case '--dce': switch args {
+        case '--js': js = arr[++i];
+        case '--swf': swf = arr[++i];
+        case '--neko': neko = arr[++i];
+        case '--php': php = arr[++i];
+        case '--cpp': cpp = arr[++i];
+        case '--cs': cs = arr[++i];
+        case '--java': java = arr[++i];
+        case '--jvm': jvm = arr[++i];
+        case '--python': python = arr[++i];
+        case '--lua': lua = arr[++i];
+        case '--hl': hl = arr[++i];
+        case '--cppia': cppia = arr[++i];
+        case '--x': execute = arr[++i];
+        case '--dce': switch arr[++i] {
           case 'no': dce = no;
           case 'full': dce = full;
           case 'std': dce = std;
         }
-        case '--cmd': addCmd(args);
+        case '--cmd': addCmd(arr[++i]);
         case '--remap':
-          var infos = getRemapInfos(args);
+          var infos = getRemapInfos(arr[++i]);
           setRemap(infos.pack, infos.remap);
         case '-r', '--resource':
-          var infos = getResourceInfos(args);
+          var infos = getResourceInfos(arr[++i]);
           addResource(infos.name, infos.name);
-        case '--macro': addMacro(args);
-        case '--wait': wait = Std.parseInt(args);
-        case '--connect': connect = Std.parseInt(args);
-        case '-C', '--cwd': addCwd(args);
-        case '--swf-version': swfVersion = args;
-        case '--swf-header': addSwfHeader(args);
-        case '--swf-lib': addSwfLib(args);
-        case '--swf-lib-extern': addSwfLibExtern(args);
-        case '--java-lib': addJavaLib(args);
+        case '--macro': addMacro(arr[++i]);
+        case '--wait': wait = Std.parseInt(arr[++i]);
+        case '--connect': connect = Std.parseInt(arr[++i]);
+        case '-C', '--cwd': addCwd(arr[++i]);
+        case '--swf-version': swfVersion = arr[++i];
+        case '--swf-header': addSwfHeader(arr[++i]);
+        case '--swf-lib': addSwfLib(arr[++i]);
+        case '--swf-lib-extern': addSwfLibExtern(arr[++i]);
+        case '--java-lib': addJavaLib(arr[++i]);
         case '--net-lib':
-          var infos = getNetLibInfos(args);
+          var infos = getNetLibInfos(arr[++i]);
           addNetLib(infos.file, infos.std);
-        case '--net-std': addNetStd(args);
-        case '--c-arg': addCArg(args);
+        case '--net-std': addNetStd(arr[++i]);
+        case '--c-arg': addCArg(arr[++i]);
       }
+      i++;
     }
-  }
-
-  public inline function put(line:String) {
-    var i = line.indexOf(' ');
-    if(i == -1) set(line);
-    else set(line.substring(0, i), line.substring(i+1));
   }
 
   public inline function copy():Null<Hxml> return cast this.copy();
 
   public var length(get, never):Null<Int>;
   private inline function get_length() return this.length;
+
+  public static inline function parseArgs(content:String):Hxml {
+    var hxml = new Hxml();
+    hxml.setByArgArray(~/[^\s"']+|"([^"]*)"/.matchMap(content, f -> {
+      return Some(~/"([^"]*)"/.replace(f.matched(0), '$1'));
+    }));
+    return hxml;
+  }
   
-  public static inline function parse(content:String):Array<Hxml> {
+  public static inline function parseHXML(content:String):Array<Hxml> {
     var result:Array<Hxml> = [];
     var hxml = new Hxml();
     var each:Hxml = null;
     var lines = ~/(\r\n|\r|\n)/g.split(content);
     var i = 0;
     while(i < lines.length) {
-      var s = lines[i];
-      if(s == '--next') {
+      var line = lines[i];
+      if(line == '--next') {
         result.push(hxml);
         hxml = each == null ? new Hxml() : each.copy();
       }
-      else if(s == '--each') each = hxml;
-      else if(s.startsWith('--run')) {
-        var r = s.substring('--run '.length);
+      else if(line == '--each') each = hxml;
+      else if(line.startsWith('--run')) {
+        var r = line.substring('--run '.length);
         var t = [];
         i++;
         while(i < lines.length) {
@@ -1054,7 +1055,11 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
           i++;
         }
         hxml.setRun(r, t);
-      } else hxml.put(s); 
+      } else {
+        var si = line.indexOf(' ');
+        if(si == -1) hxml.set(line);
+        else hxml.set(line.substring(0, si), line.substring(si+1));
+      }
       i++;
     }
 
