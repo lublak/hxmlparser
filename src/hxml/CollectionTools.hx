@@ -1,4 +1,4 @@
-package de.lublak.haxe.ui;
+package hxml;
 
 import haxe.ds.Option;
 
