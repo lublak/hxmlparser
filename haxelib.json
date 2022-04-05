@@ -1,0 +1,12 @@
+{
+  "name": "hxml",
+  "url" : "https://github.com/lublak/hxml/",
+  "license": "MIT",
+  "tags": ["haxe", "hxml"],
+  "description": "This library parse and manages hxml arguments.",
+  "version": "1.0.0",
+  "classPath": "src/",
+  "releasenote": "Initial release.",
+  "contributors": ["lublak"],
+  "dependencies": {}
+}
