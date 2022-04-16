@@ -36,44 +36,30 @@ private class HxmlArgumentTools {
       case Cmd(command): ['--cmd', command];
       case Connect(port): ['--connect', '$port'];
       case Comment(_): [];
-      case Cpp(dir): ['--cpp', dir];
-      case Cppia(file): ['--cppia', file];
-      case Cs(dir): ['--cs', dir];
       case Cwd(dir): ['--cwd', dir];
       case Dce(dce): ['--dce', cast dce];
       case Debug: ['--debug'];
       case Define(key, value): ['-D', value == null ? key : '$key=$value'];
       case Display: ['--display'];
-      case Execute(file): ['-x', file];
       case FlashStrict: ['--flash-strict'];
-      case Hl(file): ['--hl', file];
-      case Interp: ['--interp'];
-      case Java(dir): ['--java', dir];
       case JavaLib(file): ['--java-lib', file];
-      case Js(file): ['--js', file];
-      case Jvm(file): ['--jvm', file];
       case Library(name, version): ['-L', name + (version == null ? '' : ':${VersionTools.toString(version)}')];
-      case Lua(file): ['--lua', file];
       case Macro(code): ['--macro', code];
       case Main(cls): ['--main', cls];
-      case Neko(file): ['--neko', file];
       case NetLib(file, name): ['--net-lib', file + (name == null ? '' : '@$name')];
       case NetStd(file): ['--net-std', file];
       case NoInline: ['--no-inline'];
       case NoOpt: ['--no-opt'];
       case NoOutput: ['--no-output'];
       case NoTraces: ['--no-traces'];
-      case Php(dir): ['--php', dir];
       case Prompt: ['--prompt'];
-      case Python(file): ['--python', file];
       case Remap(pack, target): ['--remap', '$pack:$target'];
       case Resource(file, name): ['-r', file + (name == null ? '' : '@$name')];
-      case Run(module, args): ['--run', module].concat(args);
-      case Swf(file): ['--swf', file];
       case SwfHeader(header): ['--swf-header', header];
       case SwfLib(lib): ['--swf-lib', lib];
       case SwfLibExtern(lib): ['--swf-lib-extern', lib];
       case SwfVersion(version): ['--swf-version', version];
+      case Target(target): HxmlTargetTools.toArgArray(target);
       case Times: ['--times'];
       case Verbose: ['--verbose'];
       case Wait(port): ['--wait', '$port'];
@@ -85,7 +71,7 @@ private class HxmlArgumentTools {
   private static inline function internalToString(arg:HxmlArgument, hxml:Bool = false):String {
     return switch arg {
       case Comment(comment): hxml ? '#$comment' : '';
-      case Run(module, args): '--run $module' + (args == null ? '' : (hxml ? args.map(quoteSpaceArg).join('\n') : args.map(quoteSpaceArg).join(' ')));
+      case Target(t) if(t.match(Run(_, _))): hxml ? HxmlArgumentTools.toHxmlString(arg) : HxmlArgumentTools.toString(arg);
       default:
         var args = toArgArray(arg);
         if(args.length > 0) {
@@ -97,6 +83,61 @@ private class HxmlArgumentTools {
   }
 }
 
+private class HxmlTargetTools {
+  public static inline function toString(target:HxmlTarget):String return internalToString(target, false);
+  public static inline function toHxmlString(target:HxmlTarget):String return internalToString(target, true);
+  public static inline function toArgArray(target:HxmlTarget) {
+    return switch target {
+      case Cpp(dir): ['--cpp', dir];
+      case Cppia(file): ['--cppia', file];
+      case Cs(dir): ['--cs', dir];
+      case Execute(file): ['-x', file];
+      case Hl(file): ['--hl', file];
+      case Interp: ['--interp'];
+      case Java(dir): ['--java', dir];
+      case Js(file): ['--js', file];
+      case Jvm(file): ['--jvm', file];
+      case Lua(file): ['--lua', file];
+      case Neko(file): ['--neko', file];
+      case Php(dir): ['--php', dir];
+      case Python(file): ['--python', file];
+      case Run(module, args): ['--run', module].concat(args);
+      case Swf(file): ['--swf', file];
+    }
+  }
+  private static inline function internalToString(target:HxmlTarget, hxml:Bool = false):String {
+    return switch target {
+      case Run(module, args): '--run $module' + (args == null ? '' : (hxml ? args.map(HxmlArgumentTools.quoteSpaceArg).join('\n') : args.map(HxmlArgumentTools.quoteSpaceArg).join(' ')));
+      default:
+        var args = toArgArray(target);
+        if(args.length > 0) {
+          var r = [args[0]];
+          for (i in 1...args.length) r.push(HxmlArgumentTools.quoteSpaceArg(args[i]));
+          r.join(' ');
+        } else '';
+    };
+  }
+}
+
+@:using(hxml.Hxml.HxmlTargetTools)
+enum HxmlTarget {
+  Cpp(dir:String);
+  Cppia(file:String);
+  Cs(dir:String);
+  Execute(file:String);
+  Hl(file:String);
+  Interp;
+  Java(dir:String);
+  Js(file:String);
+  Jvm(file:String);
+  Lua(file:String);
+  Neko(file:String);
+  Php(dir:String);
+  Python(file:String);
+  Run(module:String, ?args:Array<String>);
+  Swf(file:String);
+}
+
 @:using(hxml.Hxml.HxmlArgumentTools)
 enum HxmlArgument {
   CArg(arg:String);
@@ -105,44 +146,30 @@ enum HxmlArgument {
   Cmd(command:String);
   Connect(port:Int);
   Comment(comment:String);
-  Cpp(dir:String);
-  Cppia(file:String);
-  Cs(dir:String);
   Cwd(dir:String);
   Dce(dce:Dce);
   Debug;
   Define(key:String, ?value:String);
   Display;
-  Execute(file:String);
   FlashStrict;
-  Hl(file:String);
-  Interp;
-  Java(dir:String);
   JavaLib(file:String);
-  Js(file:String);
-  Jvm(file:String);
   Library(name:String, ?version:Version);
-  Lua(file:String);
   Macro(code:String);
   Main(cls:String);
-  Neko(file:String);
   NetLib(file:String, ?s:String);
   NetStd(dir:String);
   NoInline;
   NoOpt;
   NoOutput;
   NoTraces;
-  Php(dir:String);
   Prompt;
-  Python(file:String);
   Remap(pack:String, target:String);
   Resource(file:String, ?name:String);
-  Run(module:String, ?args:Array<String>);
-  Swf(file:String);
   SwfHeader(header:String);
   SwfLib(lib:String);
   SwfLibExtern(lib:String);
   SwfVersion(version:String);
+  Target(target:HxmlTarget);
   Times;
   Verbose;
   Wait(port:Int);
@@ -215,13 +242,6 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
     };
   }
 
-  public inline function clearTarget() {
-    this.delete(f -> switch f {
-      case Cpp(_), Cppia(_), Cs(_), Execute(_), Hl(_), Interp, Java(_), Js(_), Jvm(_), Lua(_), Neko(_), Php(_), Python(_), Run(_, _): true;
-      default: false;
-    });
-  }
-
   public inline function getCArg() return this.filterMap(f -> switch(f) {
     case CArg(arg): Some(arg);
     default: null;
@@ -282,46 +302,46 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
 
   public var cpp(get, set):Null<String>;
   private inline function get_cpp() return this.findMap(f -> switch(f) {
-    case Cpp(dir): return Some(dir);
+    case Target(Cpp(dir)): return Some(dir);
     default: None;
   });
   private inline function set_cpp(dir:Null<String>) {
     if(dir == null) {
-      this.delete(f -> f.match(Cpp(_)));
-      return dir;
-    }
-    clearTarget();
-    this.push(Cpp(dir));
+      this.delete(f -> switch f {
+        case Target(Cpp(_)): true;
+        default: false;
+      }, true);
+    } else target = Cpp(dir);
     return dir;
   }
 
   public var cppia(get, set):Null<String>;
   private inline function get_cppia() return this.findMap(f -> switch(f) {
-    case Cppia(file): return Some(file);
+    case Target(Cppia(file)): return Some(file);
     default: None;
   });
   private inline function set_cppia(file:Null<String>) {
     if(file == null) {
-      this.delete(f -> f.match(Cppia(_)));
-      return file;
-    }
-    clearTarget();
-    this.push(Cppia(file));
+      this.delete(f -> switch f {
+        case Target(Cppia(_)): true;
+        default: false;
+      }, true);
+    } else target = Cppia(file);
     return file;
   }
 
   public var cs(get, set):Null<String>;
   private inline function get_cs() return this.findMap(f -> switch(f) {
-    case Cs(dir): return Some(dir);
+    case Target(Cs(dir)): return Some(dir);
     default: None;
   });
   private inline function set_cs(dir:Null<String>) {
     if(dir == null) {
-      this.delete(f -> f.match(Cs(_)));
-      return dir;
-    }
-    clearTarget();
-    this.push(Cs(dir));
+      this.delete(f -> switch f {
+        case Target(Cs(_)): true;
+        default: false;
+      }, true);
+    } else target = Cs(dir);
     return dir;
   }
 
@@ -410,16 +430,16 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
 
   public var execute(get, set):Null<String>;
   private inline function get_execute() return this.findMap(f -> switch(f) {
-    case Execute(d): return Some(d);
+    case Target(Execute(d)): return Some(d);
     default: None;
   });
   private inline function set_execute(x:Null<String>) {
     if(x == null) {
-      this.delete(f -> f.match(Execute(_)));
-      return x;
-    }
-    clearTarget();
-    this.push(Execute(x));
+      this.delete(f -> switch f {
+        case Target(Execute(_)): true;
+        default: false;
+      }, true);
+    } else target = Execute(x);
     return x;
   }
 
@@ -436,42 +456,47 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
 
   public var hl(get, set):Null<String>;
   private inline function get_hl() return this.findMap(f -> switch(f) {
-    case Hl(file): return Some(file);
+    case Target(Hl(file)): return Some(file);
     default: None;
   });
   private inline function set_hl(file:Null<String>) {
     if(file == null) {
-      this.delete(f -> f.match(Hl(_)));
-      return file;
-    }
-    clearTarget();
-    this.push(Hl(file));
+      this.delete(f -> switch f {
+        case Target(Hl(_)): true;
+        default: false;
+      }, true);
+    } else target = Hl(file);
     return file;
   }
 
   public var interp(get, set):Bool;
   private inline function get_interp() return this.exists(f -> switch(f) {
-    case Interp: return true;
+    case Target(Interp): return true;
     default: false;
   });
   private inline function set_interp(interp:Bool) {
-    if(interp) if(!this.exists(f -> f.match(Interp))) this.push(Interp);
-    else this.delete(f -> f.match(Interp), true);
+    if(interp) target = Interp;
+    else {
+      this.delete(f -> switch f {
+        case Target(Interp): true;
+        default: false;
+      }, true);
+    }
     return interp;
   }
 
   public var java(get, set):Null<String>;
   private inline function get_java() return this.findMap(f -> switch(f) {
-    case Java(dir): return Some(dir);
+    case Target(Java(dir)): return Some(dir);
     default: None;
   });
   private inline function set_java(dir:Null<String>) {
     if(dir == null) {
-      this.delete(f -> f.match(Java(_)));
-      return dir;
-    }
-    clearTarget();
-    this.push(Java(dir));
+      this.delete(f -> switch f {
+        case Target(Java(_)): true;
+        default: false;
+      }, true);
+    } else target = Java(dir);
     return dir;
   }
 
@@ -491,31 +516,31 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
 
   public var js(get, set):Null<String>;
   private inline function get_js() return this.findMap(f -> switch(f) {
-    case Js(file): return Some(file);
+    case Target(Js(file)): return Some(file);
     default: None;
   });
   private inline function set_js(file:Null<String>) {
     if(file == null) {
-      this.delete(f -> f.match(Js(_)));
-      return file;
-    }
-    clearTarget();
-    this.push(Js(file));
+      this.delete(f -> switch f {
+        case Target(Js(_)): true;
+        default: false;
+      }, true);
+    } else target = Js(file);
     return file;
   }
 
   public var jvm(get, set):Null<String>;
   private inline function get_jvm() return this.findMap(f -> switch(f) {
-    case Jvm(file): return Some(file);
+    case Target(Jvm(file)): return Some(file);
     default: None;
   });
   private inline function set_jvm(file:Null<String>) {
     if(file == null) {
-      this.delete(f -> f.match(Jvm(_)));
-      return file;
-    }
-    clearTarget();
-    this.push(Jvm(file));
+      this.delete(f -> switch f {
+        case Target(Jvm(_)): true;
+        default: false;
+      }, true);
+    } else target = Jvm(file);
     return file;
   }
 
@@ -541,16 +566,16 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
 
   public var lua(get, set):Null<String>;
   private inline function get_lua() return this.findMap(f -> switch(f) {
-    case Lua(file): return Some(file);
+    case Target(Lua(file)): return Some(file);
     default: None;
   });
   private inline function set_lua(file:Null<String>) {
     if(file == null) {
-      this.delete(f -> f.match(Lua(_)));
-      return file;
-    }
-    clearTarget();
-    this.push(Lua(file));
+      this.delete(f -> switch f {
+        case Target(Lua(_)): true;
+        default: false;
+      }, true);
+    } else target = Lua(file);
     return file;
   }
 
@@ -586,16 +611,16 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
 
   public var neko(get, set):Null<String>;
   private inline function get_neko() return this.findMap(f -> switch(f) {
-    case Neko(file): return Some(file);
+    case Target(Neko(file)): return Some(file);
     default: None;
   });
   private inline function set_neko(file:Null<String>) {
     if(file == null) {
-      this.delete(f -> f.match(Neko(_)));
-      return file;
-    }
-    clearTarget();
-    this.push(Neko(file));
+      this.delete(f -> switch f {
+        case Target(Neko(_)): true;
+        default: false;
+      }, true);
+    } else target = Neko(file);
     return file;
   }
 
@@ -675,16 +700,16 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
 
   public var php(get, set):Null<String>;
   private inline function get_php() return this.findMap(f -> switch(f) {
-    case Php(dir): return Some(dir);
+    case Target(Php(dir)): return Some(dir);
     default: None;
   });
   private inline function set_php(dir:Null<String>) {
     if(dir == null) {
-      this.delete(f -> f.match(Php(_)));
-      return dir;
-    }
-    clearTarget();
-    this.push(Php(dir));
+      this.delete(f -> switch f {
+        case Target(Php(_)): true;
+        default: false;
+      }, true);
+    } else target = Php(dir);
     return dir;
   }
 
@@ -701,16 +726,16 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
 
   public var python(get, set):Null<String>;
   private inline function get_python() return this.findMap(f -> switch(f) {
-    case Python(file): return Some(file);
+    case Target(Python(file)): return Some(file);
     default: None;
   });
   private inline function set_python(file:Null<String>) {
     if(file == null) {
-      this.delete(f -> f.match(Python(_)));
-      return file;
-    }
-    clearTarget();
-    this.push(Python(file));
+      this.delete(f -> switch f {
+        case Target(Python(_)): true;
+        default: false;
+      }, true);
+    } else target = Python(file);
     return file;
   }
 
@@ -766,55 +791,44 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
 
   public var run(get, set):Null<String>;
   private inline function get_run() return this.findMap(f -> switch(f) {
-    case Run(module, args): return Some(module + (args != null && args.length > 0 ? ' ${args.map(HxmlArgumentTools.quoteSpaceArg).join(' ')}' : ''));
+    case Target(Run(module, args)): return Some(module + (args != null && args.length > 0 ? ' ${args.map(HxmlArgumentTools.quoteSpaceArg).join(' ')}' : ''));
     default: None;
   });
   private inline function set_run(run:Null<String>) {
     if(run == null) {
-      this.delete(f -> f.match(Run(_, _)));
+      removeRun();
       return run;
     }
-    var i = this.findIndex(f -> switch(f) {
-      case Run(_, _): true;
-      default: false;
-    });
     var infos = getRunInfos(run);
-    if(infos != null) {
-      if(i == -1) this.push(Run(infos.module, infos.args));
-      else this[i] = Run(infos.module, infos.args);
-    }
+    if(infos == null) return null;
+    setRun(infos.module, infos.args);
     return run;
   }
 
   public inline function getRun() return this.findMap(f -> switch f {
-    case Run(module, args): Some({module: module, args: args});
+    case Target(Run(module, args)): Some({module: module, args: args});
     default: None;
   });
   public inline function setRun(module:String, args:Array<String>) {
-    var i = this.findIndex(f -> switch(f) {
-      case Run(_, _): true;
-      default: false;
-    });
-    if(i == -1) this.push(Run(module, args));
-    else this[i] = Run(module, args);
+    target = Run(module, args);
   }
   public inline function removeRun() this.delete(f -> switch f {
-    case Run(_, _): true;
+    case Target(Run(_, _)): true;
     default: false;
   }, true);
 
   public var swf(get, set):Null<String>;
   private inline function get_swf() return this.findMap(f -> switch(f) {
-    case Swf(file): return Some(file);
+    case Target(Swf(file)): return Some(file);
     default: None;
   });
   private inline function set_swf(file:Null<String>) {
     if(file == null) {
-      this.delete(f -> f.match(Swf(_)));
-      return file;
-    }
-    clearTarget();
-    this.push(Swf(file));
+      this.delete(f -> switch f {
+        case Target(Swf(_)): true;
+        default: false;
+      }, true);
+    } else target = Swf(file);
     return file;
   }
 
@@ -874,6 +888,20 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
     if(i == -1) this.push(SwfVersion(swfVersion));
     else this[i] = SwfVersion(swfVersion);
     return swfVersion;
+  }
+
+  public var target(get, set):Null<HxmlTarget>;
+  private inline function get_target() return this.findMap(f -> switch(f) {
+    case Target(target): return Some(target);
+    default: None;
+  });
+  private inline function set_target(target:Null<HxmlTarget>) {
+    if(target == null) {
+      this.delete(f -> f.match(Target(_)));
+      return target;
+    }
+    this.push(Target(target));
+    return target;
   }
 
   public var times(get, set):Bool;
