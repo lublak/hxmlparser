@@ -1186,4 +1186,8 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
     }
     return true;
   }
+
+  public inline function delete(f:HxmlArgument -> Bool, onlyFirst:Bool = false) {
+    CollectionTools.delete(this, f, onlyFirst);
+  }
 }
