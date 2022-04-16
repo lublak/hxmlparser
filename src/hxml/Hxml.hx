@@ -1100,7 +1100,8 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
   public inline function toHXML() return this.map(HxmlArgumentTools.toHxmlString).join('\n');
   public inline function toArgs() return this.map(HxmlArgumentTools.toArgArray).flatten();
 
-  public inline function buildCleanUp(onlyCompletionServer:Bool = false):Hxml {
+  public inline function buildCleanUp():Hxml {
+    var onlyCompletionServer = false;
     var newhxml = [];
     var resthxml = [];
     var macroshxml = [];
