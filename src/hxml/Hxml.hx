@@ -1015,6 +1015,7 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
           addNetLib(infos.file, infos.std);
         case '--net-std': addNetStd(arr[++i]);
         case '--c-arg': addCArg(arr[++i]);
+        case e if(!e.startsWith('-')): addClass(e);
       }
       i++;
     }
