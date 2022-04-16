@@ -1175,7 +1175,7 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
     for (argument in resthxml) newhxml.push(argument);
     for (argument in macroshxml) newhxml.push(argument);
     for (argument in cmdhxml) newhxml.push(argument);
-    return newhxml;
+    return cast newhxml;
   }
 
   @:op(A == B) public function equals(hxml:Hxml):Bool {
