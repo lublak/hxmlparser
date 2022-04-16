@@ -1100,7 +1100,7 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
   public inline function toHXML() return this.map(HxmlArgumentTools.toHxmlString).join('\n');
   public inline function toArgs() return this.map(HxmlArgumentTools.toArgArray).flatten();
 
-  public inline function toComparableHxml(onlyCompletionServer:Bool = false) {
+  public inline function buildCleanUp(onlyCompletionServer:Bool = false):Hxml {
     var newhxml = [];
     var resthxml = [];
     var macroshxml = [];
@@ -1125,7 +1125,7 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
         case Cls(_): pushToRestOnlyCompletionServer();
         case Cmd(_): cmdhxml.push(argument);
         case Connect(_): pushToRestOnlyCompletionServer();
-        case Comment(_): // ignore
+        case Comment(_): pushToRestOnlyCompletionServer();
         case Cwd(_): curCwd = argument;
         case Dce(_): pushToRestOnlyCompletionServer();
         case Debug:  pushToRestOnlyCompletionServer();
