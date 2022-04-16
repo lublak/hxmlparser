@@ -1099,4 +1099,91 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
   @:to public inline function toString() this.map(HxmlArgumentTools.toString).join(' ');
   public inline function toHXML() return this.map(HxmlArgumentTools.toHxmlString).join('\n');
   public inline function toArgs() return this.map(HxmlArgumentTools.toArgArray).flatten();
+
+  public inline function toComparableHxml(onlyCompletionServer:Bool = false) {
+    var newhxml = [];
+    var resthxml = [];
+    var macroshxml = [];
+    var cmdhxml = [];
+    var curCwd = null;
+    for (argument in this) {
+
+      function pushWithCwd() {
+        if(curCwd != null) {
+          newhxml.push(curCwd);
+          curCwd = null;
+        }
+        newhxml.push(argument);
+      }
+      function pushOnlyCompletionServer() if(!onlyCompletionServer) newhxml.push(argument);
+      function pushToRest() resthxml.push(argument);
+      function pushToRestOnlyCompletionServer() if(!onlyCompletionServer) resthxml.push(argument);
+
+      switch argument {
+        case CArg(_): pushToRestOnlyCompletionServer();
+        case ClassPath(_): pushWithCwd();
+        case Cls(_): pushToRestOnlyCompletionServer();
+        case Cmd(_): cmdhxml.push(argument);
+        case Connect(_): pushToRestOnlyCompletionServer();
+        case Comment(_): // ignore
+        case Cwd(_): curCwd = argument;
+        case Dce(_): pushToRestOnlyCompletionServer();
+        case Debug:  pushToRestOnlyCompletionServer();
+        case Define(_, _):  pushToRest();
+        case Display: pushToRestOnlyCompletionServer();
+        case FlashStrict: pushToRestOnlyCompletionServer();
+        case JavaLib(_): pushToRest();
+        case Library(_, _): pushToRest();
+        case Macro(_): macroshxml.push(argument);
+        case Main(_): pushToRestOnlyCompletionServer();
+        case NetLib(_, _): pushToRest();
+        case NetStd(_): pushToRest();
+        case NoInline: pushToRestOnlyCompletionServer();
+        case NoOpt: pushToRestOnlyCompletionServer();
+        case NoOutput: pushToRestOnlyCompletionServer();
+        case NoTraces: pushToRestOnlyCompletionServer();
+        case Prompt: pushToRestOnlyCompletionServer();
+        case Remap(_, _): pushToRestOnlyCompletionServer();
+        case Resource(_, _): pushToRestOnlyCompletionServer();
+        case SwfHeader(_): pushToRestOnlyCompletionServer();
+        case SwfLib(_): pushToRest();
+        case SwfLibExtern(_): pushToRest();
+        case SwfVersion(_): pushToRestOnlyCompletionServer();
+        case Target(target): switch target {
+          case Cpp(_): pushWithCwd();
+          case Cppia(_): pushWithCwd();
+          case Cs(_): pushWithCwd();
+          case Execute(_): pushWithCwd();
+          case Hl(_): pushWithCwd();
+          case Interp: pushToRest();
+          case Java(_): pushWithCwd();
+          case Js(_): pushWithCwd();
+          case Jvm(_): pushWithCwd();
+          case Lua(_): pushWithCwd();
+          case Neko(_): pushWithCwd();
+          case Php(_): pushWithCwd();
+          case Python(_): pushWithCwd();
+          case Run(_, _): pushToRest();
+          case Swf(_): pushWithCwd();
+        }
+        case Times: pushOnlyCompletionServer();
+        case Verbose: pushOnlyCompletionServer();
+        case Wait(_): pushToRestOnlyCompletionServer();
+      }
+    }
+    resthxml.sort((e1, e2) -> Type.enumIndex(e1) - Type.enumIndex(e2));
+    for (argument in resthxml) newhxml.push(argument);
+    for (argument in macroshxml) newhxml.push(argument);
+    for (argument in cmdhxml) newhxml.push(argument);
+    return newhxml;
+  }
+
+  @:op(A == B) public function equals(hxml:Hxml):Bool {
+    var hxmlArr:Array<HxmlArgument> = hxml;
+    if(this.length != hxmlArr.length) return false;
+    for (i in 0...this.length) {
+      if(!Type.enumEq(this[i], hxmlArr[i])) return false;
+    }
+    return true;
+  }
 }
