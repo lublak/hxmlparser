@@ -81,6 +81,16 @@ private class HxmlArgumentTools {
         } else '';
     };
   }
+  public static inline function isCwdBased(arg:HxmlArgument) {
+    return switch arg {
+      case ClassPath(_), Cmd(_): true;
+      case Target(target): switch target {
+        case Interp, Run(_, _): false;
+        default: true;
+      }
+      default: false;
+    }
+  }
 }
 
 private class HxmlTargetTools {
@@ -349,14 +359,36 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
     case Cwd(cwd): Some(cwd);
     default: null;
   });
-  public inline function addCwd(cwd:String) if(!this.exists(f -> switch(f) {
-    case Cwd(_cwd) if(_cwd == cwd): true;
-    default: false;
-  })) this.push(Cmd(cwd));
+  public inline function addCwd(cwd:String) {
+    var i = this.length-1;
+    while(i >= 0) {
+      switch(this[i]) {
+        case Cwd(_cwd):
+          this[i] = Path.isAbsolute(cwd) ? Cwd(cwd) : Cwd(Path.join([_cwd, cwd]));
+          break;
+        case e if(HxmlArgumentTools.isCwdBased(e)):
+          i--;
+          while(i >= 0) {
+            switch(this[i]) {
+              case Cwd(_cwd):
+                if(_cwd != cwd) this.push(Cwd(cwd));
+                break;
+              default:
+            }
+            i--; 
+          }
+          if(i == 0) this.push(Cwd(cwd));
+          break;
+        default:
+      }
+      i--; 
+    }
+    if(i == 0) this.push(Cwd(cwd));
+  }
   public inline function removeCwd(cwd:String) this.delete(f -> switch(f) {
     case Cwd(_cwd) if(_cwd == cwd): true;
     default: false;
-  }, true);
+  }, false);
   public inline function removeAllCwds() this.delete(f -> f.match(Cwd(_)));
 
   public var dce(get, set):Null<Dce>;
@@ -1100,81 +1132,35 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
   public inline function toHXML() return this.map(HxmlArgumentTools.toHxmlString).join('\n');
   public inline function toArgs() return this.map(HxmlArgumentTools.toArgArray).flatten();
 
-  public inline function buildCleanUp(onlyCompletionServer:Bool = false):Hxml {
+  public inline function buildCleanUp():Hxml {
     var newhxml = [];
     var resthxml = [];
     var macroshxml = [];
-    var cmdhxml = [];
+    var run = null;
     var curCwd = null;
     for (argument in this) {
-
-      function pushWithCwd() {
+      if(HxmlArgumentTools.isCwdBased(argument)) {
         if(curCwd != null) {
-          newhxml.push(curCwd);
+          newhxml.push(Cwd(curCwd));
           curCwd = null;
         }
         newhxml.push(argument);
-      }
-      function pushOnlyCompletionServer() if(!onlyCompletionServer) newhxml.push(argument);
-      function pushToRest() resthxml.push(argument);
-      function pushToRestOnlyCompletionServer() if(!onlyCompletionServer) resthxml.push(argument);
-
-      switch argument {
-        case CArg(_): pushToRestOnlyCompletionServer();
-        case ClassPath(_): pushWithCwd();
-        case Cls(_): pushToRestOnlyCompletionServer();
-        case Cmd(_): cmdhxml.push(argument);
-        case Connect(_): pushToRestOnlyCompletionServer();
-        case Comment(_): pushToRestOnlyCompletionServer();
-        case Cwd(_): curCwd = argument;
-        case Dce(_): pushToRestOnlyCompletionServer();
-        case Debug:  pushToRestOnlyCompletionServer();
-        case Define(_, _):  pushToRest();
-        case Display: pushToRestOnlyCompletionServer();
-        case FlashStrict: pushToRestOnlyCompletionServer();
-        case JavaLib(_): pushToRest();
-        case Library(_, _): pushToRest();
+      } else switch argument {
+        case Cwd(cwd):
+          if(curCwd == null) curCwd = cwd;
+          else curCwd = Path.isAbsolute(cwd) ? cwd : Path.join([curCwd, cwd]);
         case Macro(_): macroshxml.push(argument);
-        case Main(_): pushToRestOnlyCompletionServer();
-        case NetLib(_, _): pushToRest();
-        case NetStd(_): pushToRest();
-        case NoInline: pushToRestOnlyCompletionServer();
-        case NoOpt: pushToRestOnlyCompletionServer();
-        case NoOutput: pushToRestOnlyCompletionServer();
-        case NoTraces: pushToRestOnlyCompletionServer();
-        case Prompt: pushToRestOnlyCompletionServer();
-        case Remap(_, _): pushToRestOnlyCompletionServer();
-        case Resource(_, _): pushToRestOnlyCompletionServer();
-        case SwfHeader(_): pushToRestOnlyCompletionServer();
-        case SwfLib(_): pushToRest();
-        case SwfLibExtern(_): pushToRest();
-        case SwfVersion(_): pushToRestOnlyCompletionServer();
         case Target(target): switch target {
-          case Cpp(_): pushWithCwd();
-          case Cppia(_): pushWithCwd();
-          case Cs(_): pushWithCwd();
-          case Execute(_): pushWithCwd();
-          case Hl(_): pushWithCwd();
-          case Interp: pushToRest();
-          case Java(_): pushWithCwd();
-          case Js(_): pushWithCwd();
-          case Jvm(_): pushWithCwd();
-          case Lua(_): pushWithCwd();
-          case Neko(_): pushWithCwd();
-          case Php(_): pushWithCwd();
-          case Python(_): pushWithCwd();
-          case Run(_, _): pushToRest();
-          case Swf(_): pushWithCwd();
+          case Run(_, _): run = argument;
+          default: resthxml.push(argument);
         }
-        case Times: pushOnlyCompletionServer();
-        case Verbose: pushOnlyCompletionServer();
-        case Wait(_): pushToRestOnlyCompletionServer();
+        default: resthxml.push(argument);
       }
     }
     resthxml.sort((e1, e2) -> Type.enumIndex(e1) - Type.enumIndex(e2));
     for (argument in resthxml) newhxml.push(argument);
     for (argument in macroshxml) newhxml.push(argument);
-    for (argument in cmdhxml) newhxml.push(argument);
+    if(run != null) newhxml.push(run);
     return cast newhxml;
   }
 
