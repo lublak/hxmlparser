@@ -84,10 +84,7 @@ private class HxmlArgumentTools {
   public static inline function isCwdBased(arg:HxmlArgument) {
     return switch arg {
       case ClassPath(_), Cmd(_): true;
-      case Target(target): switch target {
-        case Interp, Run(_, _): false;
-        default: true;
-      }
+      case Target(target): HxmlTargetTools.isCwdBased(target);
       default: false;
     }
   }
@@ -125,6 +122,12 @@ private class HxmlTargetTools {
           for (i in 1...args.length) r.push(HxmlArgumentTools.quoteSpaceArg(args[i]));
           r.join(' ');
         } else '';
+    };
+  }
+  public static inline function isCwdBased(target:HxmlTarget) {
+    return switch target {
+      case Interp, Run(_, _): false;
+      default: true;
     };
   }
 }
@@ -270,28 +273,48 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
     case ClassPath(path): Some(path);
     default: null;
   });
-  public inline function addClassPath(path:String) if(!this.exists(f -> switch(f) {
-    case ClassPath(_path) if(_path == path): true;
-    default: false;
-  })) this.push(ClassPath(path));
+  public inline function addClassPath(path:String) {
+    var i = this.length-1;
+    while(i >= 0) {
+      switch this[i] {
+        case Cwd(_):
+          this.push(ClassPath(path));
+          break;
+        case ClassPath(_path) if(_path == path):
+          break;
+      }
+      i--;
+    }
+    if(i == 0) this.push(ClassPath(path));
+  }
   public inline function removeClassPath(path:String) this.delete(f -> switch(f) {
     case ClassPath(_path) if(_path == path): true;
     default: false;
-  }, true);
+  }, false);
   public inline function removeAllClassPaths() this.delete(f -> f.match(ClassPath(_)));
 
   public inline function getCmds() return this.filterMap(f -> switch f {
     case Cmd(command): Some(command);
     default: null;
   });
-  public inline function addCmd(command:String) if(!this.exists(f -> switch(f) {
-    case Cmd(_command) if(_command == command): true;
-    default: false;
-  })) this.push(Cmd(command));
+  public inline function addCmd(command:String) {
+    var i = this.length-1;
+    while(i >= 0) {
+      switch this[i] {
+        case Cwd(_):
+          this.push(Cmd(command));
+          break;
+        case Cmd(_command) if(_command == command):
+          break;
+      }
+      i--;
+    }
+    if(i == 0) this.push(ClassPath(path));
+  }
   public inline function removeCmd(command:String) this.delete(f -> switch(f) {
     case Cmd(_command) if(_command == command): true;
     default: false;
-  }, true);
+  }, false);
   public inline function removeAllCmds() this.delete(f -> f.match(Cmd(_)));
 
   public var connect(get, set):Null<Int>;
@@ -928,10 +951,8 @@ abstract Hxml (Array<HxmlArgument>) to Array<HxmlArgument> {
     default: None;
   });
   private inline function set_target(target:Null<HxmlTarget>) {
-    if(target == null) {
-      this.delete(f -> f.match(Target(_)));
-      return target;
-    }
+    this.delete(f -> f.match(Target(_)));
+    if(target == null) return target;
     this.push(Target(target));
     return target;
   }
